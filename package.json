@@ -1,0 +1,34 @@
+{
+  "name": "jobboard-backend",
+  "version": "1.0.0",
+  "description": "Job Board backend API - Node.js, Express, Supabase, JWT Auth, RBAC, File Upload",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "dev": "nodemon server.js",
+    "start": "node server.js"
+  },
+  "keywords": [
+    "jobboard",
+    "express",
+    "supabase",
+    "rbac"
+  ],
+  "author": "Ajaz",
+  "license": "ISC",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.110.8",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.2",
+    "express-rate-limit": "^8.6.1",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.2.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}
