@@ -135,3 +135,47 @@ export const getApplicationsForJob = asyncHandler(async (req, res, next) => {
     data,
   });
 });
+
+// src/controllers/applicationController.js mein add karo
+
+// ==========================================================
+// 4. EMPLOYER APPLICATION KA STATUS UPDATE KARE (accept/reject)
+// PATCH /api/applications/:id/status
+// ==========================================================
+export const updateApplicationStatus = asyncHandler(async (req, res, next) => {
+  const { id } = req.params; // application ki id
+  const { status } = req.body; // Zod schema route mein validate kar chuka hoga
+
+  // Pehle application dhoondo, sath uski job bhi le aao (ownership check ke liye)
+  const { data: application, error: fetchError } = await supabase
+    .from("applications")
+    .select("id, job_id, jobs(employer_id)")
+    .eq("id", id)
+    .single();
+
+  if (fetchError || !application) {
+    return next(new AppError("Application nahi mili", 404));
+  }
+
+  // Ownership check — sirf wahi employer status change kar sakta hai jiski job hai
+  if (application.jobs.employer_id !== req.user.id) {
+    return next(new AppError("Aap sirf apni job ki applications ka status change kar sakte hain", 403));
+  }
+
+  const { data: updated, error: updateError } = await supabase
+    .from("applications")
+    .update({ status })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (updateError) {
+    return next(new AppError(updateError.message, 500));
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "Application status update ho gaya",
+    data: updated,
+  });
+});

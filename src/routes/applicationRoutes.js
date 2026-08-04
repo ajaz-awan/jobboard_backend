@@ -3,7 +3,13 @@ import express from "express";
 import { protect, authorize } from "../middleware/auth.js";
 import upload from "../middleware/uploadMiddleware.js";
 import validate from "../middleware/validate.js";                   // naya import
-import { applySchema } from "../schemas/applicationSchema.js";      // naya import
+import { applySchema } from "../schemas/applicationSchema.js";  
+// src/routes/applicationRoutes.js mein add karo (existing routes ke sath)
+
+import { updateApplicationStatus } from "../controllers/applicationController.js";
+import { updateApplicationStatusSchema } from "../schemas/applicationSchema.js";
+
+
 import {
   applyToJob,
   getMyApplications,
@@ -24,6 +30,13 @@ router.post(
   validate(applySchema),
   applyToJob
 );
+router.patch(
+  "/:id/status",
+  protect,
+  authorize("employer"), // sirf employer status change kar sakta hai, candidate nahi
+  validate(updateApplicationStatusSchema, "body"),
+  updateApplicationStatus
+);    
 
 router.get("/my", protect, authorize("candidate"), getMyApplications);
 router.get("/job/:jobId", protect, authorize("employer"), getApplicationsForJob);
