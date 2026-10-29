@@ -1,0 +1,17 @@
+import { Router } from "express";
+import { protect, authorize, requireVerifiedEmail, requireRecentLogin } from "../middleware/auth.js";
+import validate from "../middleware/validate.js";
+import { idSchema } from "../schemas/paginationSchema.js";
+import * as schemas from "../schemas/adminSchema.js";
+import * as admin from "../controllers/adminController.js";
+const router = Router();
+router.use(protect, authorize("admin"), requireVerifiedEmail);
+router.get("/dashboard", admin.dashboard);
+router.get("/users", validate(schemas.userListSchema, "query"), admin.listUsers);
+router.patch("/users/:id/status", requireRecentLogin, validate(idSchema, "params"), validate(schemas.userStatusSchema), admin.setUserStatus);
+router.get("/jobs", validate(schemas.adminJobListSchema, "query"), admin.listJobs);
+router.patch("/jobs/:id/moderation", requireRecentLogin, validate(idSchema, "params"), validate(schemas.moderationSchema), admin.moderateJob);
+router.get("/reports", validate(schemas.reportListSchema, "query"), admin.listReports);
+router.patch("/reports/:id", requireRecentLogin, validate(idSchema, "params"), validate(schemas.reviewReportSchema), admin.reviewReport);
+router.get("/audit-logs", validate(schemas.auditListSchema, "query"), admin.listAuditLogs);
+export default router;

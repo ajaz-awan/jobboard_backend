@@ -1,39 +1,34 @@
-// src/schemas/jobSchema.js
 import { z } from "zod";
-
-// Job create karte waqt — sab required fields (jo DB mein NOT NULL hain unke hisab se)
-export const createJobSchema = z.object({
-  title: z.string().min(3, "Title kam se kam 3 characters ka hona chahiye").max(150),
-  description: z.string().min(10, "Description kam se kam 10 characters ki honi chahiye"),
-  location: z.string().optional(), // DB mein nullable hai, isliye optional rakha
-  job_type: z
-    .enum(["full-time", "part-time", "contract", "internship"], {
-      errorMap: () => ({ message: "job_type sirf full-time, part-time, contract, ya internship ho sakta hai" }),
-    })
-    .optional(), // DB mein default 'full-time' hai, isliye optional
-  salary_min: z.number().int().positive().optional(),
-  salary_max: z.number().int().positive().optional(),
-}).refine(
-  // Cross-field check — salary_max hamesha salary_min se bada ya barabar hona chahiye
-  (data) => !data.salary_min || !data.salary_max || data.salary_max >= data.salary_min,
-  {
-    message: "salary_max, salary_min se kam nahi ho sakta",
-    path: ["salary_max"], // error isi field ke naam se dikhega
-  }
-);
-
-// Job update karte waqt — sab fields optional (jo bhi bhejo wahi update hoga)
-// Note: ye createJobSchema se alag likha hai (naya object), kyunki .refine() ke baad .partial() lagana Zod mein allowed nahi hota
-export const updateJobSchema = z.object({
-  title: z.string().min(3).max(150).optional(),
-  description: z.string().min(10).optional(),
-  location: z.string().optional(),
-  job_type: z.enum(["full-time", "part-time", "contract", "internship"]).optional(),
-  salary_min: z.number().int().positive().optional(),
-  salary_max: z.number().int().positive().optional(),
-  status: z
-    .enum(["open", "closed"], {
-      errorMap: () => ({ message: "status sirf open ya closed ho sakta hai" }),
-    })
-    .optional(),
+import { paginationFields } from "./paginationSchema.js";
+const jobType = z.enum(["full-time", "part-time", "contract", "internship"]);
+const salary = z.number().int().min(0).max(1_000_000_000);
+const fields = {
+  title: z.string().trim().min(3).max(150),
+  description: z.string().trim().min(10).max(20000),
+  location: z.string().trim().min(1).max(150).optional(),
+  job_type: jobType.optional(), salary_min: salary.optional(), salary_max: salary.optional(),
+  status: z.enum(["open", "closed"]).optional(),
+  expires_at: z.iso.datetime().refine(v => new Date(v).getTime() > Date.now(), "Deadline must be in the future").nullable().optional(),
+  work_mode: z.enum(["onsite", "hybrid", "remote"]).optional(),
+  experience_level: z.enum(["entry", "mid", "senior", "any"]).optional(),
+  skills: z.array(z.string().trim().min(1).max(40)).max(20).optional(),
+};
+export const validSalary = v => v.salary_min == null || v.salary_max == null || v.salary_max >= v.salary_min;
+const salaryRule = { path: ["salary_max"], message: "Maximum salary must be at least minimum salary" };
+export const createJobSchema = z.strictObject(fields).refine(validSalary, salaryRule);
+export const updateJobSchema = z.strictObject({ ...fields,
+  location: z.string().trim().min(1).max(150).nullable().optional(),
+  salary_min: salary.nullable().optional(), salary_max: salary.nullable().optional(),
+}).partial()
+  .refine(v => Object.keys(v).length > 0, "Provide at least one field").refine(validSalary, salaryRule);
+export const jobQuerySchema = z.strictObject({
+  ...paginationFields,
+  q: z.string().trim().min(1).max(100).optional(),
+  work_mode: z.enum(["onsite", "hybrid", "remote"]).optional(),
+  experience_level: z.enum(["entry", "mid", "senior", "any"]).optional(),
+  title: z.string().trim().min(1).max(150).optional(),
+  location: z.string().trim().min(1).max(150).optional(),
+  job_type: jobType.optional(), status: z.enum(["open", "closed"]).optional(),
+  salary_min: z.coerce.number().int().min(0).max(1_000_000_000).optional(),
+  sort: z.enum(["newest", "oldest", "salary"]).default("newest"),
 });

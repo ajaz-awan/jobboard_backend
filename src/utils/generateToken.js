@@ -1,9 +1,9 @@
 import jwt from "jsonwebtoken";
-
-export const generateToken = (userId, role) => {
-  return jwt.sign(
-    { id: userId, role },              // payload — token ke andar ye data chupa hoga
-    process.env.JWT_SECRET,             // secret key jo sirf server ko pata hai
-    { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
-  );
-};
+import { randomUUID } from "node:crypto";
+import { env } from "../config/env.js";
+export const generateToken = (userId, role, { sessionId, authVersion = 0 } = {}) => jwt.sign({
+  id: userId, role, sid: sessionId, ver: authVersion,
+}, env.JWT_SECRET, {
+  algorithm: "HS256", expiresIn: env.JWT_EXPIRES_IN, issuer: env.JWT_ISSUER,
+  audience: env.JWT_AUDIENCE, subject: userId, jwtid: randomUUID(),
+});

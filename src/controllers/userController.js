@@ -1,36 +1,27 @@
-import { supabase } from "../config/supabaseClient.js";
+import { User } from "../models/index.js";
 import AppError from "../utils/AppError.js";
-import {asyncHandler} from "../utils/asyncHandler.js";
-import { uploadFileToStorage } from "../utils/uploadFileToStorage.js";
-
-// ==========================================================
-// EMPLOYER APNA COMPANY LOGO UPLOAD/UPDATE KARE
-// PATCH /api/users/me/logo
-// ==========================================================
-export const uploadLogo = asyncHandler(async (req, res, next) => {
-  // Multer ne file ko req.file mein daala hoga (fieldname "logo" route mein set hai)
-  if (!req.file) {
-    return next(new AppError("Logo file required hai (field name: 'logo')", 400));
-  }
-
-  // "logos" bucket mein upload karo — same reusable function jo resume ke liye bhi use hua
-  const logo_url = await uploadFileToStorage(req.file, "logos");
-
-  // req.user.id se apna hi record update ho raha hai — koi aur ka logo change nahi ho sakta
-  const { data: updatedUser, error } = await supabase
-    .from("users")
-    .update({ logo_url })
-    .eq("id", req.user.id)
-    .select("id, name, email, company_name, logo_url")
-    .single();
-
-  if (error) {
-    return next(new AppError(error.message, 500));
-  }
-
-  res.status(200).json({
-    success: true,
-    message: "Logo successfully update ho gaya",
-    data: updatedUser,
-  });
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { storeFile, removeStoredFile } from "../utils/fileStorage.js";
+export const getMe = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user.id);
+  if (!user) throw new AppError("Account is unavailable", 401);
+  res.json({ success: true, data: user });
+});
+export const updateMe = asyncHandler(async (req, res) => {
+  if (req.body.company_name !== undefined && req.user.role !== "employer") throw new AppError("Company name is only available to employers", 403);
+  const user = await User.findByIdAndUpdate(req.user.id, { $set: req.body }, { returnDocument: "after", runValidators: true });
+  if (!user) throw new AppError("Account is unavailable", 401);
+  res.json({ success: true, data: user });
+});
+export const uploadLogo = asyncHandler(async (req, res) => {
+  if (!req.file) throw new AppError("Logo file is required", 400);
+  const user = await User.findById(req.user.id);
+  if (!user) throw new AppError("Account is unavailable", 401);
+  const oldUrl = user.logo_url;
+  const file = await storeFile(req.file, "logos", req.user.id);
+  try { user.logo_url = file.url; await user.save(); }
+  catch (error) { await removeStoredFile("logos", file.key); throw error; }
+  const prefix = "/api/files/logos/";
+  if (oldUrl?.startsWith(prefix)) await removeStoredFile("logos", oldUrl.slice(prefix.length));
+  res.json({ success: true, data: user });
 });

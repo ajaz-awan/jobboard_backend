@@ -1,11 +1,13 @@
 import express from "express";
-import { protect, authorize } from "../middleware/auth.js";
+import { protect, authorize, requireVerifiedEmail } from "../middleware/auth.js";
+import { uploadCapacity } from "../middleware/uploadCapacity.js";
 import upload from "../middleware/uploadMiddleware.js";
-import { uploadLogo } from "../controllers/userController.js";
-
+import validate from "../middleware/validate.js";
+import { profileSchema } from "../schemas/authSchema.js";
+import { getMe, updateMe, uploadLogo } from "../controllers/userController.js";
 const router = express.Router();
-
-// Sirf employer apna logo update kar sakta hai
-router.patch("/me/logo", protect, authorize("employer"), upload.single("logo"), uploadLogo);
-
+router.use(protect);
+router.get("/me", getMe);
+router.patch("/me", validate(profileSchema), updateMe);
+router.patch("/me/logo", authorize("employer"), requireVerifiedEmail, uploadCapacity, upload.single("logo"), uploadLogo);
 export default router;

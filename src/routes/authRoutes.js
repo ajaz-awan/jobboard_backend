@@ -1,14 +1,21 @@
-// src/routes/authRoutes.js
-// Ye file batati hai kaunsa URL hit hone pe kaunsa controller function chalega
-
-import express from "express";
-import { register, login } from "../controllers/authController.js";
-import validate from "../middleware/validate.js";                      // naya import — validation middleware
-import { registerSchema, loginSchema } from "../schemas/authSchema.js"; // naya import — Zod schemas
-
-const router = express.Router();
-
-router.post("/register", validate(registerSchema), register); // POST /api/auth/register
-router.post("/login", validate(loginSchema), login); // POST /api/auth/login
-
+import { Router } from "express";
+import * as auth from "../controllers/authController.js";
+import validate from "../middleware/validate.js";
+import { protect, csrfProtection } from "../middleware/auth.js";
+import { registerSchema, signupOtpSchema, loginSchema, emailRequestSchema, actionTokenSchema, resetPasswordSchema, changePasswordSchema, emptyBodySchema } from "../schemas/authSchema.js";
+import { idSchema } from "../schemas/paginationSchema.js";
+const router = Router();
+router.post("/register", validate(registerSchema), auth.register);
+router.post("/verify-signup", validate(signupOtpSchema), auth.verifySignup);
+router.post("/login", validate(loginSchema), auth.login);
+router.post("/refresh", csrfProtection, validate(emptyBodySchema), auth.refresh);
+router.post("/logout", csrfProtection, validate(emptyBodySchema), auth.logout);
+router.post("/logout-all", protect, validate(emptyBodySchema), auth.logoutAll);
+router.post("/resend-verification", validate(emailRequestSchema), auth.resendVerification);
+router.post("/verify-email", validate(actionTokenSchema), auth.verifyEmail);
+router.post("/forgot-password", validate(emailRequestSchema), auth.forgotPassword);
+router.post("/reset-password", validate(resetPasswordSchema), auth.resetPassword);
+router.post("/change-password", protect, validate(changePasswordSchema), auth.changePassword);
+router.get("/sessions", protect, auth.listSessions);
+router.delete("/sessions/:id", protect, validate(idSchema, "params"), auth.revokeSession);
 export default router;

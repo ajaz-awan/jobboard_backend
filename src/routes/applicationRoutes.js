@@ -1,44 +1,18 @@
-// src/routes/applicationRoutes.js
 import express from "express";
-import { protect, authorize } from "../middleware/auth.js";
+import { protect, authorize, requireVerifiedEmail } from "../middleware/auth.js";
+import { uploadCapacity } from "../middleware/uploadCapacity.js";
 import upload from "../middleware/uploadMiddleware.js";
-import validate from "../middleware/validate.js";                   // naya import
-import { applySchema } from "../schemas/applicationSchema.js";  
-// src/routes/applicationRoutes.js mein add karo (existing routes ke sath)
-
-import { updateApplicationStatus } from "../controllers/applicationController.js";
-import { updateApplicationStatusSchema } from "../schemas/applicationSchema.js";
-
-
-import {
-  applyToJob,
-  getMyApplications,
-  getApplicationsForJob,
-} from "../controllers/applicationController.js";
-
+import validate from "../middleware/validate.js";
+import { applySchema, updateApplicationStatusSchema, applicationQuerySchema } from "../schemas/applicationSchema.js";
+import { idSchema, jobIdSchema } from "../schemas/paginationSchema.js";
+import { applyToJob, getMyApplications, getApplicationsForJob, updateApplicationStatus, downloadResume, withdrawApplication } from "../controllers/applicationController.js";
+import { emptyBodySchema } from "../schemas/authSchema.js";
 const router = express.Router();
-
-// Order zaroori hai: upload (Multer) → validate (Zod) → applyToJob (controller)
-// Multer pehle chalna zaroori hai kyunki multipart/form-data ko parse karke
-// req.body mein job_id/cover_letter fields wahi daalta hai. Agar validate
-// isse pehle chale, to req.body abhi khali/unparsed hoga aur validation galat fail ho jayegi.
-router.post(
-  "/",
-  protect,
-  authorize("candidate"),
-  upload.single("resume"),
-  validate(applySchema),
-  applyToJob
-);
-router.patch(
-  "/:id/status",
-  protect,
-  authorize("employer"), // sirf employer status change kar sakta hai, candidate nahi
-  validate(updateApplicationStatusSchema, "body"),
-  updateApplicationStatus
-);    
-
-router.get("/my", protect, authorize("candidate"), getMyApplications);
-router.get("/job/:jobId", protect, authorize("employer"), getApplicationsForJob);
-
+router.use(protect);
+router.post("/", authorize("candidate"), requireVerifiedEmail, uploadCapacity, upload.single("resume"), validate(applySchema), applyToJob);
+router.get("/my", authorize("candidate"), validate(applicationQuerySchema, "query"), getMyApplications);
+router.get("/job/:jobId", authorize("employer"), validate(jobIdSchema, "params"), validate(applicationQuerySchema, "query"), getApplicationsForJob);
+router.patch("/:id/withdraw", authorize("candidate"), validate(idSchema, "params"), validate(emptyBodySchema), withdrawApplication);
+router.get("/:id/resume", validate(idSchema, "params"), downloadResume);
+router.patch("/:id/status", authorize("employer"), requireVerifiedEmail, validate(idSchema, "params"), validate(updateApplicationStatusSchema), updateApplicationStatus);
 export default router;

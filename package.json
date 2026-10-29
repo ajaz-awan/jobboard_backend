@@ -1,34 +1,51 @@
 {
   "name": "jobboard-backend",
-  "version": "1.0.0",
-  "description": "Job Board backend API - Node.js, Express, Supabase, JWT Auth, RBAC, File Upload",
+  "version": "2.0.0",
+  "description": "Job Board backend - MongoDB, Zod, verified email, password recovery and revocable JWT sessions",
   "type": "module",
   "main": "server.js",
   "scripts": {
     "dev": "nodemon server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node --test tests/unit/*.test.js",
+    "test:integration": "node --test tests/integration/*.test.js",
+    "setup": "node scripts/setup.js",
+    "admin:grant": "node scripts/grant-admin.js",
+    "docs:generate": "node scripts/generate-openapi.js",
+    "check": "npm test && npm run test:integration",
+    "storage:migrate": "node scripts/migrate-local-uploads.js"
   },
   "keywords": [
     "jobboard",
     "express",
-    "supabase",
+    "mongodb",
+    "mongoose",
+    "zod",
     "rbac"
   ],
   "author": "Ajaz",
   "license": "ISC",
   "dependencies": {
-    "@supabase/supabase-js": "^2.110.8",
+    "@aws-sdk/client-s3": "^3.1159.0",
+    "@smithy/node-http-handler": "^4.13.0",
     "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dotenv": "^16.6.1",
-    "express": "^4.22.2",
-    "express-rate-limit": "^8.6.1",
+    "express": "^4.22.3",
+    "express-rate-limit": "^8.7.1",
     "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
-    "multer": "^2.2.0",
-    "zod": "^4.4.3"
+    "mongoose": "^9.11.4",
+    "multer": "^2.5.0",
+    "nodemailer": "^10.2.1",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
+    "mongodb-memory-server": "^11.3.0",
     "nodemon": "^3.1.4"
+  },
+  "engines": {
+    "node": ">=22.12.0"
   }
 }

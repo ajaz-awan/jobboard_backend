@@ -1,27 +1,22 @@
 import express from "express";
-import {
-  createJob,
-  getAllJobs,
-  getJobById,
-  updateJob,
-  deleteJob,
-} from "../controllers/jobController.js";
-import { protect, authorize } from "../middleware/auth.js";
+import { createJob, getAllJobs, getJobById, updateJob, deleteJob } from "../controllers/jobController.js";
+import { saveJob, unsaveJob, getSavedJobs, getEmployerJobs } from "../controllers/savedJobController.js";
+import { protect, optionalProtect, authorize, requireVerifiedEmail } from "../middleware/auth.js";
 import validate from "../middleware/validate.js";
-import { createJobSchema, updateJobSchema } from "../schemas/jobSchema.js";
-import { paginationSchema } from "../schemas/paginationSchema.js";
+import { createJobSchema, updateJobSchema, jobQuerySchema } from "../schemas/jobSchema.js";
+import { paginationSchema, idSchema } from "../schemas/paginationSchema.js";
+import { reportJob } from "../controllers/communityController.js";
+import { createReportSchema } from "../schemas/adminSchema.js";
+import { makeLimiter } from "../services/rateLimits.js";
 const router = express.Router();
-
-// Public-ish routes — koi bhi logged-in user dekh sakta hai
-// (agar tum chaho ke bina login ke bhi dikhe, to protect hata dena)
-
-router.get("/", protect, validate(paginationSchema, "query"), getAllJobs)
-router.get("/:id", protect, getJobById);
-
-// Sirf employer create/update/delete kar sakta hai
-
-router.post("/", protect, authorize("employer"), validate(createJobSchema), createJob);
-router.patch("/:id", protect, authorize("employer"), validate(updateJobSchema), updateJob)
-router.delete("/:id", protect, authorize("employer"), deleteJob);
-
+router.get("/", optionalProtect, validate(jobQuerySchema, "query"), getAllJobs);
+router.get("/mine", protect, authorize("employer"), validate(paginationSchema, "query"), getEmployerJobs);
+router.get("/saved", protect, authorize("candidate"), validate(paginationSchema, "query"), getSavedJobs);
+router.put("/:id/save", protect, authorize("candidate"), requireVerifiedEmail, validate(idSchema, "params"), saveJob);
+router.delete("/:id/save", protect, authorize("candidate"), requireVerifiedEmail, validate(idSchema, "params"), unsaveJob);
+router.post("/:id/report", protect, makeLimiter("reports", 10), authorize("candidate"), requireVerifiedEmail, validate(idSchema, "params"), validate(createReportSchema), reportJob);
+router.get("/:id", optionalProtect, validate(idSchema, "params"), getJobById);
+router.post("/", protect, authorize("employer"), requireVerifiedEmail, validate(createJobSchema), createJob);
+router.patch("/:id", protect, authorize("employer"), requireVerifiedEmail, validate(idSchema, "params"), validate(updateJobSchema), updateJob);
+router.delete("/:id", protect, authorize("employer"), requireVerifiedEmail, validate(idSchema, "params"), deleteJob);
 export default router;

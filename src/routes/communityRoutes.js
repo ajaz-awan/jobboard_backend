@@ -1,0 +1,17 @@
+import { Router } from "express";
+import { protect, authorize } from "../middleware/auth.js";
+import validate from "../middleware/validate.js";
+import { notificationListSchema } from "../schemas/adminSchema.js";
+import { idSchema, paginationSchema } from "../schemas/paginationSchema.js";
+import { emptyBodySchema } from "../schemas/authSchema.js";
+import * as community from "../controllers/communityController.js";
+export const notificationRoutes = Router();
+notificationRoutes.use(protect);
+notificationRoutes.get("/", validate(notificationListSchema, "query"), community.listNotifications);
+notificationRoutes.get("/unread-count", community.unreadCount);
+notificationRoutes.patch("/read-all", validate(emptyBodySchema), community.readAllNotifications);
+notificationRoutes.patch("/:id/read", validate(idSchema, "params"), validate(emptyBodySchema), community.readNotification);
+export const dashboardRoutes = Router();
+dashboardRoutes.get("/", protect, authorize("candidate", "employer"), community.dashboard);
+export const reportRoutes = Router();
+reportRoutes.get("/my", protect, authorize("candidate"), validate(paginationSchema, "query"), community.myReports);

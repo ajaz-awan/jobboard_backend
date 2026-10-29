@@ -1,0 +1,12 @@
+import { z } from "zod";
+import { paginationFields } from "./paginationSchema.js";
+const reason = z.string().trim().min(3).max(500);
+export const userListSchema = z.strictObject({ ...paginationFields, role: z.enum(["candidate", "employer", "admin"]).optional(), status: z.enum(["active", "suspended"]).optional(), email: z.string().trim().max(254).optional() });
+export const userStatusSchema = z.strictObject({ status: z.enum(["active", "suspended"]), reason });
+export const moderationSchema = z.strictObject({ status: z.enum(["approved", "blocked"]), reason, revision: z.number().int().min(0) });
+export const adminJobListSchema = z.strictObject({ ...paginationFields, moderation_status: z.enum(["pending", "approved", "blocked"]).optional(), employer_id: z.uuid().optional() });
+export const reportListSchema = z.strictObject({ ...paginationFields, status: z.enum(["open", "resolved", "dismissed"]).optional() });
+export const reviewReportSchema = z.strictObject({ status: z.enum(["resolved", "dismissed"]), note: z.string().trim().min(3).max(1000) });
+export const auditListSchema = z.strictObject({ ...paginationFields, action: z.enum(["user_status", "job_moderation", "report_review"]).optional(), actor_id: z.uuid().optional(), outcome: z.enum(["attempted", "completed", "failed"]).optional() });
+export const createReportSchema = z.strictObject({ reason: z.enum(["scam", "spam", "discrimination", "misleading", "other"]), details: z.string().trim().max(2000).default("") });
+export const notificationListSchema = z.strictObject({ ...paginationFields, read: z.enum(["all", "unread"]).default("all") });
